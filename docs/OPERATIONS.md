@@ -184,7 +184,7 @@ on:
 | integration tests | the recall and correction assertions |
 | gold layer | `make dbt` |
 | snapshot | `scripts/snapshot_metrics.py` writes `runs/latest.json` and `runs/history.json` |
-| publish | the two files are committed to the **`runs` branch** of this repository |
+| publish | the two files are committed to **`main`**, which is what the site is built from, so every run rebuilds the deployment |
 | tear down | `docker compose down -v` |
 
 The published documents are what the deployed dashboards read:
@@ -193,7 +193,8 @@ The published documents are what the deployed dashboards read:
   site and `/dashboard` renders them. No database is exposed to the internet and
   no runtime call is involved (an earlier version fetched the files from GitHub
   at request time; Vercel's edge runtime cannot reach github.com, so the run is
-  now part of the build).
+  now part of the build). The raw documents are at
+  `https://raw.githubusercontent.com/saber2164/UPI-three-way-reconciliation/main/runs/latest.json`.
 * **Streamlit Community Cloud** — the `dashboard/` app reads a *public* Postgres
   (Neon, Supabase, Aiven) that the pipeline writes to; the DSN comes from
   `st.secrets`.

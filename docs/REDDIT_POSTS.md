@@ -137,48 +137,24 @@ experience grammar, discloses, hedges with "the surprising part was".)*
 ### 2.2 r/fintech — "What payment-provider incident forced you to redesign reconciliation?" (1 month old, 16 comments)
 
 The thread's own answer is "don't treat the processor status as the accounting
-truth" (three people say it independently). This reply agrees with them,
-contributes the incident we actually had, and adds the two points nobody in
-the thread had made.
+truth" (three people say it independently). This reply agrees with them and
+adds the two points nobody in the thread had made. **Short version — long
+replies do not get read on Reddit:**
 
-> Full disclosure: we work on an open-source reference implementation of
-> exactly this, so I'm biased.
->
-> Our incident was not a provider outage - it was us trusting a status flag. A
-> settlement that leaves the switch and clears the bank a day later is normal,
-> and our pipeline called it MISSING_SETTLEMENT as soon as a 4-hour window
-> passed, so every ordinary payment produced a false exception. We found it
-> only because we scored the pipeline against a simulator that published the
-> fault it injected; without that oracle we would have shipped it and tuned
-> the threshold until the exception list looked plausible.
->
-> The process change was three things:
->
-> 1. We stopped treating the provider's status as the accounting truth
->    (icnews10's point, which I think is the load-bearing one): a payment
->    carries its own states - authorised, captured, in transit, settled - and
->    reconciliation confirms the economic outcome instead of restating the
->    provider's opinion. The corollary we had to learn the hard way: modelling
->    states is not enough, the state machine needs a clock - a per-partner
->    expected clear date - otherwise "in transit" is just a nicer word for
->    "we do not know yet".
-> 2. Detection had to stop being arrival-driven. A reconciliation that only
->    reacts to arrivals can never notice a payment that never arrives; that
->    case needs a watermark (expected amount and arrival per partner per day)
->    compared against what actually landed. That is a monitoring gap, not a
->    matching gap, and it is the one nobody designs for first.
-> 3. The decision audit is keyed on the event time of the decision, not wall
->    clock, so a replay is a no-op, and the serving table is monotonic in
->    decision time, so a stale write cannot undo a correction. That one came
->    from an incident of its own: a late-arriving correction silently
->    overwrote a newer verdict.
->
-> The duplicate-after-retry case is the nastier of the two, because the
-> duplicate is byte-identical and every job that counts records inflates
-> revenue by exactly one payment. We stamp a single id on every leg and dedup
-> at the decision layer, not at the source layer, because deduping at the
-> source loses the information that a retry happened - and that information is
-> exactly what you need when the amounts do not tie out at month end.
+> Full disclosure: we build an open-source implementation of this, so we're
+> biased. Our incident wasn't an outage — it was trusting a status flag: a
+> settlement that clears the bank a day later is normal, but we called it
+> MISSING_SETTLEMENT after 4 hours, so every ordinary payment was a false
+> exception. Agreeing with the thread: modelling states
+> (authorised/captured/in transit/settled) is right, but without a per-partner
+> expected clear date, "in transit" is just a nicer way of saying "we don't
+> know yet". And a gap nobody designs for: a reconciliation that reacts to
+> arrivals can never notice a payment that never arrives — that needs an
+> expected-arrival watermark per partner per day, i.e. an alarm on missing
+> money, not on mismatched money.
+
+*No repo link in this one: the thread is about incidents, not about the
+project, and a link would be a promotion where nobody asked for one.*
 
 ### 2.3 r/fintech — "just spent three days debugging why our transaction reconciliation was throwing mismatches at exactly 00:00 UTC" (3.6 months old)
 
@@ -216,54 +192,24 @@ reply is **help only** — no link, no mention of us:
 The OP is a founder deciding whether to build this. The thread's answers are
 "normalise to one schema", "exceptions are the hard part" and "reconciliation
 becomes infrastructure" — all true, all already in the OP. This reply answers
-the four questions concretely and is deliberately honest about the case
-against the streaming approach.
+the questions concretely and is deliberately honest about the case against the
+streaming approach. **Short version — long replies do not get read:**
 
-> Full disclosure first: we work on an open-source reference implementation of
-> exactly this, so I'm biased - and the useful part of our answer is the place
-> where we got it wrong.
->
-> On the stack question, the honest answer for a mid-market team with a handful
-> of PSPs is a warehouse and a normalized schema, not a streaming pipeline. We
-> went the other way (Flink/Kafka, per-payment reconciliation) because we
-> wanted the answer to "is this payment OK" in seconds. If you're deciding today
-> whether to build anything, we would not push you to that: the deterministic
-> core is cheap, the exception handling is the product, and it does not get
-> cheaper with throughput.
->
-> The concrete answers:
->
-> - Where the time goes: not parsing, the residual. Reconciling per payment
->   gives you "every payment accounted for"; the "bank got X, reports said Y"
->   question is a tie-out question - sum of net settlements vs the bank
->   deposit, and the difference has to be explained from a closed list of
->   candidates: MDR/fee differences, VAT/WHT, refunds and chargebacks in
->   flight, partial refunds, FX rounding, deposits split across bank days. If
->   your fee lines are not decomposed into their own rows, the residual is
->   unresolvable and you are doing month-end archaeology. That was the single
->   highest-leverage change we made.
-> - Matching: three identities, not one - the bank's reference for the payment,
->   your order id, the PSP's transaction id. Stamp one canonical id on every
->   leg at ingest and never match on the PSP's settlement row id. Settlement
->   files are net-of-fee and often aggregated per partner per bank day, so
->   "order to settlement line" is not a join you can run against the aggregated
->   file at all; you need the per-payment settlement file (or a fee breakdown)
->   for the per-payment tie, and the aggregated file only for the bank total.
-> - Windows: per partner, not in UTC. A partner whose batch rolls over at local
->   midnight and converts to UTC afterwards broke our reconciliation for 11
->   minutes a night. Keep the contractual arrival window per integration, and
->   keep the raw file plus a header-version hash - PSPs change CSV headers
->   without notice, and without the raw file you cannot reprocess what you
->   already ingested.
-> - The failure we are living with: our pipeline calls a settlement "missing"
->   once a 4-hour window passes, which is a false positive on every ordinary
->   payment, because a settlement that leaves the switch and clears the bank a
->   day later is normal. We have not settled the right model (an explicit
->   in-transit state with a per-partner expected clear date, or just ageing the
->   break) and we would genuinely like to be argued with on it.
->
-> The repo is MIT and runs on a laptop:
+> Full disclosure: we build an open-source implementation of this, so we're
+> biased. The "bank got X, reports said Y" question isn't a matching problem,
+> it's a residual one: sum net settlements per partner per day, compare to the
+> bank deposit, and explain the difference from a closed list — fee/MDR diffs,
+> VAT/WHT, refunds and chargebacks in flight, FX rounding, deposits split
+> across bank days. If fees aren't their own rows, that residual is
+> unresolvable. Also match on a canonical id you stamp at ingest, not the PSP's
+> settlement row id (files are net-of-fee and often aggregated per partner per
+> day), and define arrival windows per partner, not in UTC. Repo (MIT):
 > github.com/saber2164/UPI-three-way-reconciliation
+
+*The longer cut of this reply (with the residual's candidate list expanded, the
+three-identities detail and the admission about our own 4-hour window) is kept
+in the git history; it was cut because a 2,700-character reply does not get
+read.*
 
 ---
 

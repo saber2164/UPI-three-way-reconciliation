@@ -683,6 +683,76 @@ submit window only; both jobs start and run normally.
 
 ---
 
+## 27. `pull access denied for upi-recon-flink`
+
+**Symptom.** The GitHub Actions simulation failed in its first step:
+
+```
+Error pull access denied for upi-recon-flink, repository does not exist
+or may require 'docker login': denied: requested access to the resource is denied
+```
+
+**Root cause.** Only `flink-jobmanager` declared a `build:` section; the
+TaskManager, the SQL Gateway and the submit container only declared `image:`.
+Compose then tried to **pull** the locally built image from the registry for
+those services instead of building it. On a laptop the image already existed
+in the local cache, so it worked; on a fresh runner it failed.
+
+**Fix.** Every service that uses a locally built image declares the same
+`build:` section (the build is cached, so the extra declarations cost
+nothing).
+
+**Verified.** The stack now starts on a fresh GitHub runner.
+
+---
+
+## 28. `minio-init` failed with exit 1 and took the stack with it
+
+**Symptom.** The same workflow failed in the first step again:
+
+```
+Container upi-recon-minio-init-1  service "minio-init" didn't complete
+successfully: exit 1
+```
+
+**Root cause.** The one-shot init creates the two buckets with a single
+`mc alias set && mc mb && mc mb` chain. MinIO's health check can pass before
+its S3 API answers, and `mc mb` on an existing bucket also exits 1 — either
+way the init dies, and because `iceberg-rest` and the Flink JobManager both
+declare `condition: service_completed_successfully`, the whole stack stops
+before it starts.
+
+**Fix.** The init retries the alias until MinIO answers and uses
+`--ignore-existing`, and the workflow prints the init's log if the stack does
+not come up.
+
+**Verified.** The stack starts on the runner and the simulation runs.
+
+---
+
+## 29. The Vercel edge runtime cannot reach github.com
+
+**Symptom.** The dashboard's API returned a 504 on every request, with the
+invocation burning its full 30 s budget:
+
+```
+FUNCTION_INVOCATION_TIMEOUT
+```
+
+**Root cause.** The function fetched the published run from
+`raw.githubusercontent.com` (and then from `api.github.com`). Both requests
+*hang* from Vercel's edge runtime rather than failing, and the request
+timeout is not honoured either.
+
+**Fix.** Don't fetch at runtime. The build embeds `runs/latest.json` and
+`runs/history.json` in the site and the dashboard page reads them statically —
+no API, no database, no CDN cache in the way, and no dependency on GitHub
+being reachable from the edge. The API route was removed.
+
+**Verified.** The dashboard renders the published run on the edge.
+
+---
+
 ## Summary of the classes of failure
 
 | Class | Failures | Root cause pattern |
@@ -693,3 +763,4 @@ submit window only; both jobs start and run normally.
 | Capacity | 13, 14, 15, 25 | heap state, slot starvation, a starved broker, DuckDB's delete index |
 | Correctness under replay | 17, 18, 19, 20 | wall-clock keys, last-write-wins, random natural keys, lost in-flight data |
 | Measurement | 21, 24 | the age filter must follow the SLA, and the machine must be idle |
+| Cloud deployment | 26, 27, 28, 29 | a locally built image must be declared as a build, a one-shot init must be idempotent and retried, and the edge must not depend on a runtime fetch |

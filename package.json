@@ -1,0 +1,13 @@
+{
+  "name": "upi-three-way-reconciliation-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static documentation site for the UPI three-way reconciliation pipeline",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build_site.mjs"
+  },
+  "dependencies": {
+    "marked": "^12.0.2"
+  }
+}

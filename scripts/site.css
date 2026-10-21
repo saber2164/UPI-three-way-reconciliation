@@ -1,0 +1,180 @@
+:root {
+  --bg: #0b0d12;
+  --bg-soft: #11141c;
+  --panel: #141824;
+  --border: #222839;
+  --text: #dfe4ef;
+  --muted: #8d97ad;
+  --accent: #6ea8fe;
+  --accent-soft: rgba(110, 168, 254, 0.12);
+  --green: #5ddba0;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- navigation ---------- */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 14px 28px;
+  background: rgba(11, 13, 18, 0.86);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 15px;
+}
+
+.nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+
+.nav-link {
+  padding: 6px 11px;
+  border-radius: 7px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 14px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.nav-link:hover { background: var(--panel); color: var(--text); }
+.nav-link.is-active { background: var(--accent-soft); color: var(--accent); }
+.nav-github { border: 1px solid var(--border); }
+
+/* ---------- layout ---------- */
+.page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 44px 28px 96px;
+}
+
+.kicker {
+  margin: 0 0 18px;
+  font: 12px/1.4 var(--mono);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ---------- typography ---------- */
+h1, h2, h3, h4 { line-height: 1.25; letter-spacing: -0.02em; }
+
+h1 { font-size: 38px; margin: 0 0 18px; }
+h2 { font-size: 26px; margin: 52px 0 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+h3 { font-size: 19px; margin: 32px 0 10px; }
+h4 { font-size: 16px; margin: 24px 0 8px; color: var(--muted); }
+
+p { margin: 0 0 16px; }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+ul, ol { margin: 0 0 16px; padding-left: 22px; }
+li { margin: 5px 0; }
+
+hr { border: 0; border-top: 1px solid var(--border); margin: 40px 0; }
+
+blockquote {
+  margin: 20px 0;
+  padding: 2px 18px;
+  border-left: 3px solid var(--accent);
+  background: var(--bg-soft);
+  border-radius: 0 8px 8px 0;
+  color: var(--muted);
+}
+
+/* ---------- code ---------- */
+code {
+  font: 13px/1.5 var(--mono);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+
+pre {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  overflow-x: auto;
+  margin: 0 0 18px;
+}
+
+pre code { background: none; border: 0; padding: 0; font-size: 12.5px; line-height: 1.6; }
+
+/* ---------- tables ---------- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 22px;
+  font-size: 14px;
+  display: block;
+  overflow-x: auto;
+}
+
+th, td {
+  border: 1px solid var(--border);
+  padding: 9px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th { background: var(--panel); font-weight: 600; color: var(--text); }
+tr:nth-child(even) td { background: rgba(255, 255, 255, 0.015); }
+
+/* ---------- misc ---------- */
+img { max-width: 100%; }
+
+.footer {
+  border-top: 1px solid var(--border);
+  padding: 26px 28px 46px;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.footer p { margin: 0; }
+
+strong { color: #fff; font-weight: 620; }
+
+@media (max-width: 720px) {
+  h1 { font-size: 30px; }
+  .page { padding: 30px 18px 72px; }
+  .nav { padding: 12px 18px; }
+}

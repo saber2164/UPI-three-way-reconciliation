@@ -10,6 +10,15 @@ dbt/target/
 dbt/logs/
 dbt/dbt_packages/
 
+# node / vercel
+node_modules/
+site/
+.vercel/
+
+# locally installed agent skills (not part of the project)
+.agents/
+skills-lock.json
+
 # local configuration
 .env
 

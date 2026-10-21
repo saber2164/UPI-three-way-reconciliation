@@ -118,7 +118,7 @@ function render(doc) {
   const text = document.getElementById("status-text");
   dot.className = "dot live";
   text.innerHTML = `Run published <strong>${new Date(d.generated_at).toUTCString()}</strong> &middot; ` +
-    `samples aged ${d.age_minutes} min &middot; ` +
+    `${d.cohort || "the aged cohort"} &middot; ` +
     `<a href="https://github.com/saber2164/UPI-three-way-reconciliation/actions">workflow logs</a>`;
 
   const recallCls = d.recall_overall_pct >= 95 ? "ok" : "warn";

@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "generated_at": "2026-10-21T09:23:54.494939+00:00",
+    "decisions": 208423,
+    "match_rate_pct": 95.02,
+    "recall_overall_pct": 91.56,
+    "late_corrections": 2184,
+    "false_positives": 0,
+    "regressions": 0
+  },
+  {
+    "generated_at": "2026-10-21T09:24:11.649943+00:00",
+    "decisions": 208423,
+    "match_rate_pct": 95.02,
+    "recall_overall_pct": 91.56,
+    "late_corrections": 2184,
+    "false_positives": 0,
+    "regressions": 0
+  }
+]

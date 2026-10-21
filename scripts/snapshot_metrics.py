@@ -97,8 +97,7 @@ def build(dsn: str, age_minutes: int) -> dict:
                 where m.match_status <> 'MATCHED' and g.rrn is null
                 """,
             )
-            totals = one(
-                cur,
+            cur.execute(
                 """
                 select coalesce(sum(switch_amount), 0),
                        coalesce(sum(case when match_status='MATCHED' then switch_amount end), 0),
@@ -106,8 +105,9 @@ def build(dsn: str, age_minutes: int) -> dict:
                        coalesce(sum(case when match_status='MISSING_SETTLEMENT' then switch_amount end), 0),
                        coalesce(sum(case when match_status='MISSING_CALLBACK' then switch_amount end), 0)
                 from recon.match_results
-                """,
+                """
             )
+            totals = cur.fetchone()
             alerts = rows(
                 cur,
                 """
@@ -128,9 +128,7 @@ def build(dsn: str, age_minutes: int) -> dict:
                 order by unmatched_pct desc limit 10
                 """,
             )
-            recall = rows(
-                cur,
-                """
+            recall_sql = """
                 select g.fault,
                        count(*) as samples,
                        count(*) filter (where m.match_status = g.expected_status) as final_ok,
@@ -139,9 +137,26 @@ def build(dsn: str, age_minutes: int) -> dict:
                 left join recon.match_results m using (rrn)
                 where g.injected_at < now() - make_interval(mins => %s)
                 group by 1 order by 1
-                """,
-                (age_minutes,),
-            )
+            """
+            recall = rows(cur, recall_sql, (age_minutes,))
+            aged_cohort = sum(r["samples"] for r in recall)
+            if not aged_cohort:
+                # The run was too short for the aged cohort; fall back to every
+                # sample and say so, rather than reporting a misleading 0 %.
+                recall = rows(
+                    cur,
+                    recall_sql.replace(
+                        "where g.injected_at < now() - make_interval(mins => %s)",
+                        "where true",
+                    ),
+                    (),
+                )
+                cohort_note = (
+                    f"the run was shorter than the {age_minutes} minute window, "
+                    "so every sample is counted"
+                )
+            else:
+                cohort_note = f"samples older than {age_minutes} minutes"
             latency = rows(
                 cur,
                 """
@@ -159,6 +174,7 @@ def build(dsn: str, age_minutes: int) -> dict:
         conn.close()
 
     gross, reconciled, mismatch, outstanding, missing_cb = (float(x) for x in totals)
+    cohort_note = cohort_note
     matched = by_status.get("MATCHED", 0)
     samples = sum(r["samples"] for r in recall)
     final_ok = sum(r["final_ok"] for r in recall)
@@ -166,6 +182,7 @@ def build(dsn: str, age_minutes: int) -> dict:
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "age_minutes": age_minutes,
+        "cohort": cohort_note,
         "decisions": total,
         "by_status": by_status,
         "match_rate_pct": round(100.0 * matched / total, 2) if total else 0.0,

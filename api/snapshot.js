@@ -7,17 +7,20 @@
  * page can show the simulation without any long-lived server and without
  * exposing a database to the internet.
  *
- * It runs on the edge runtime: there is no cold start, and the fetch to
- * raw.githubusercontent.com happens from the edge next to the reader.
+ * The dashboard page prefers the copy embedded in the deployment
+ * (`/runs/latest.json`); this endpoint is the fallback and the machine
+ * readable form of the same data.
+ *
+ * It runs on the edge runtime: no cold start, and the fetch happens from the
+ * edge next to the reader.  The GitHub *contents* API is used rather than
+ * raw.githubusercontent.com, which the edge runtime cannot reach.
  */
 export const runtime = "edge";
 export const config = { maxDuration: 30 };
 
 const REPO = "saber2164/UPI-three-way-reconciliation";
 const BRANCH = "runs";
-// The explicit "refs/heads/<branch>" form is required: with the short form
-// raw.githubusercontent.com would read "runs" as the file path.
-const RAW = `https://raw.githubusercontent.com/${REPO}/refs/heads/${BRANCH}/runs`;
+const CONTENTS = `https://api.github.com/repos/${REPO}/contents`;
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -26,14 +29,19 @@ const CORS = {
   "Cache-Control": "s-maxage=60, stale-while-revalidate=300",
 };
 
-async function fetchJson(name) {
-  const res = await fetch(`${RAW}/${name}`, {
-    headers: { "User-Agent": "upi-recon-dashboard" },
+async function fetchJson(path) {
+  const res = await fetch(`${CONTENTS}/${path}?ref=${BRANCH}`, {
+    headers: {
+      Accept: "application/vnd.github+json",
+      "User-Agent": "upi-recon-dashboard",
+    },
     signal: AbortSignal.timeout(8000),
     cache: "no-store",
   });
-  if (!res.ok) throw new Error(`${name}: HTTP ${res.status}`);
-  return res.json();
+  if (!res.ok) throw new Error(`${path}: HTTP ${res.status}`);
+  const body = await res.json();
+  const raw = body.content ? atob(body.content.replace(/\n/g, "")) : "";
+  return JSON.parse(raw);
 }
 
 export default async function handler(request) {
@@ -43,8 +51,8 @@ export default async function handler(request) {
 
   try {
     const [latest, history] = await Promise.all([
-      fetchJson("latest.json"),
-      fetchJson("history.json").catch(() => []),
+      fetchJson("runs/latest.json"),
+      fetchJson("runs/history.json").catch(() => []),
     ]);
     return new Response(JSON.stringify({ latest, history }), {
       status: 200,

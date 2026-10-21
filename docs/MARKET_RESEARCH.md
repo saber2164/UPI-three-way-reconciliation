@@ -99,6 +99,47 @@ evidence available at decision time.
 
 ---
 
+## 2.1 How fresh is this?
+
+Dated, because "people complain about reconciliation" is only interesting if
+somebody is complaining *now*. Ages are relative to 2026-10-21.
+
+| thread | posted | age | the comments quoted |
+|---|---|---|---|
+| r/fintech — "payment reconciliation is always going to be a nightmare?" | 2025-11-25 | 11 months | the "canonical ledger with shared IDs" comment is **same-day**; the "shadow ledger" comment 2025-12-24 |
+| r/fintech — "How are you handling payment reconciliation as volume grows?" | 2026-05-04 | 5.5 months | the two best comments are **2026-09-17 and 2026-09-21 — about a month ago** |
+| r/fintech — "three days debugging why our reconciliation broke at 00:00 UTC" | 2026-07-01 | 3.6 months | the cutoff-window comment is **same-day**; the "time machine" comment 2026-07-04 |
+| r/fintech — "Building a deterministic reconciliation engine" | 2026-08-25 | 2 months | the deterministic-boundary comment is **2026-08-26** |
+| r/fintech — "What payment-provider incident forced you to redesign reconciliation?" | 2026-09-22 | **1 month** | comments 2026-09-26, 09-28, 10-07, 10-08 |
+| r/fintech — "reconcile PSP settlement CSVs against orders and bank deposits" | 2026-09-28 | **3 weeks** | — |
+| r/Accounting — "Nobody can do a reconciliation??" | 2026-09-26 | **25 days** | all top comments same-day |
+| r/Accounting — "Advice Needed for Daily Reconciliation" | 2026-10-13 | **8 days** | comments 7 days old, plus one from **yesterday** (2026-10-19) |
+| r/india — HDFC refusing a ₹1.3 lakh chargeback | 2026-01-20 | 9 months | — |
+| r/india — Amazon delivery scam / chargeback | 2024-12-31 | 1.8 years | — |
+
+**Read it this way:** the load-bearing evidence — the three-leg pain, the fault
+taxonomy, the canonical-ledger / source-of-truth / reason-code prescriptions —
+comes from threads that are **three weeks to eleven months old, with the key
+comments from the last month**. The consumer-cost evidence (r/india) is older
+(9 months to 1.8 years), so it is evidence of a *standing* condition, not of a
+trend. The r/dataengineering material is the oldest (2021–2025) and is about a
+different problem — reconciling *tables*, not payments — so it is background
+colour, not evidence about this pipeline.
+
+Across the 110 threads collected: 19 from the last 30 days, 18 from 31–90 days,
+8 from 91–180, 22 from 181–365, 12 from 1–2 years, 31 older than that. This
+is a *sample* from a search, not a census.
+
+**One caveat on the sources.** Four of the commenters are building competing
+products (Hyperline, BroSettlement, Reconify, kosha.finance), and they disclose
+it. Their prescriptions are treated here as hypotheses to check, not as
+evidence — and they hold up because the *same* prescription appears
+independently from at least four different people across three different
+threads (canonical ledger with shared IDs; per-field source of truth; a mismatch
+that carries a reason; ageing of open breaks; a deterministic core).
+
+---
+
 ## 3. What the research says this project is missing
 
 Ranked by how much they would change the thing.

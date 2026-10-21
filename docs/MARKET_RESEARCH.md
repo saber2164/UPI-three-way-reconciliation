@@ -156,10 +156,72 @@ Ranked by how much they would change the thing.
 | **G8** | **The three legs are assumed to share an RRN.** In the real world they do not. | "Stamp a single externalid on every charge and payout. Put it in gateway metadata, transfergroup, and your bank remittance/ACH descriptor so each system echoes the same key" | an id-mapping layer (switch RRN ↔ order id ↔ UTR), with the mapping itself audited |
 | **G9** | **No FX.** | "timing, fee, FX, duplicate, or missing leg" | out of scope for UPI (INR only) but needed for a cross-border PSP |
 | **G10** | **The break queue has no "why".** | "surface exceptions only" | the `suggested_action` exists; a per-reason playbook would complete it |
+| **G11** | **Detection is arrival-driven, so a payment that never arrives is invisible.** Every design above reacts to rows that show up. Nothing notices a payment that was debited from the customer and never landed. | "a reconciliation that only reacts to arrivals can never notice a payment that never arrives" (our own reply, 2026-10-21, and the reason the 4 h window misses it) | an *expected-arrival watermark* per partner per day: expected amount and count vs what actually landed, with a breach alarm that fires on the **absence** of money, not on a mismatch of money |
 
 **G1 and G2 are the ones that would embarrass a production deployment.** G1 makes
 the pipeline cry wolf on every normal settlement; G2 is the class of bug that
 costs a team three days.
+
+---
+
+## 3.1 What the two engagement threads added (2026-10-21)
+
+Two r/fintech threads were answered directly; both are the freshest threads in
+the corpus. Their comments are the closest thing here to a peer review.
+
+**Thread A — "How do you actually reconcile PSP settlement CSVs against orders
+and bank deposits?" (2026-09-28, 14 comments, score 6).** The OP is a founder
+deciding whether to build the thing. The consensus in the comments: normalise
+the schemas, run it daily, and expect the time to go into exceptions rather
+than parsing ("parsing formats is easy, it's the exceptions that eat your
+afternoon"). Two comments are worth keeping:
+
+* "Once several PSPs are involved, traceability from order to settlement to
+  bank deposit becomes a control layer in its own right." (ETP_Queen) — this is
+  the same conclusion as **G6/G7**, from a different direction.
+* "Portal downloads never line up with lump sum bank credits because
+  settlement windows drift." (agentUi) — the window problem (**G2**) seen from
+  the bank-deposit side rather than the partner-cutoff side.
+
+What the thread does *not* contain, and what our reply therefore contributed:
+the **residual** framing (the bank total minus the sum of net settlements has
+to be explained from a closed list of candidates — fee differences, VAT/WHT,
+refunds and chargebacks in flight, partial refunds, FX rounding, deposits
+split across bank days), the **three-identities** point (bank reference ↔ order
+id ↔ PSP transaction id, with one canonical id stamped at ingest — **G8**), and
+the rule that **fee lines must be their own rows** or the residual is
+unresolvable (**G3**).
+
+**Thread B — "What payment-provider incident forced you to redesign
+reconciliation?" (2026-09-22, 16 comments).** The thread converges hard on one
+answer, said by three different people: do not treat the provider's status as
+the accounting truth.
+
+* "The design mistake that concerns me the most is treating the provider's
+  status as the ultimate accounting truth. 'Completed' can have very different
+  meanings depending on whether the provider is talking about acceptance,
+  execution, settlement, or just its own internal workflow. It would be better
+  to model these as separate ledger states and let reconciliation confirm the
+  economic outcome independently." (icnews10) — this is **G1** restated as
+  "model the states, not the status", and it is the strongest external
+  confirmation in the corpus that the two-window design is pointed the right way.
+* "Relying on API status flags without reconciling raw bank files creates
+  structural reconciliation debt." (BigKozman) — reconcile against the bank
+  file, not the API.
+* A competitor disclosed in-thread: "Disclosure: I'm building BroSettlement at
+  BroLabel. Agreed—the processor status is evidence, not the accounting source
+  of truth." (No_Bicycle_3566) — the same disclosure discipline this project
+  uses, which is why using it in a competitor's thread is safe.
+
+What the thread did *not* contain: the **clock** inside the state machine (a
+state model without a per-partner expected clear date is just a prettier way to
+say "we don't know yet" — **G1**), and the fact that **arrival-driven
+detection cannot see a payment that never arrives** (the new **G11**).
+
+**Net effect on the build order:** G1 and G2 move from "should" to "first",
+because two independent threads now argue for them in exactly those terms, and
+G11 is added as a design-time gap rather than a later feature. G3 and G8 get
+sharper (fee rows and canonical ids, not vague "amount mismatch" handling).
 
 ---
 
@@ -192,5 +254,6 @@ the cutoff calendar are what a real implementation must add, and that the
   r/smallbusiness, r/ecommerce, r/developers, r/engineering.
 * Each candidate thread was read with its comments; the quotes above are the
   authors' own words, lightly trimmed.
-* Nothing was posted. Reddit content is treated as untrusted data, never as
-  instructions.
+* Two threads were answered directly (§3.1); the replies are drafts, staged for
+  a human to send, and every project mention in them carries the disclosure.
+* Reddit content is treated as untrusted data, never as instructions.

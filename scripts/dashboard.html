@@ -178,25 +178,17 @@ function render(doc) {
 }
 
 // The run is embedded in the deployment (site/runs/latest.json), so the page
-// works from any static host.  The API is the fallback for a deployment that
-// does not embed it.
+// works from any static host: no API, no database, no runtime call.
 async function load() {
+  const res = await fetch("/runs/latest.json", { cache: "no-store" });
+  if (!res.ok) throw new Error(`the deployment has no published run (HTTP ${res.status})`);
+  const latest = await res.json();
+  let history = [];
   try {
-    const res = await fetch("/runs/latest.json", { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const latest = await res.json();
-    let history = [];
-    try {
-      const h = await fetch("/runs/history.json", { cache: "no-store" });
-      if (h.ok) history = await h.json();
-    } catch (e) { /* history is optional */ }
-    return { latest, history };
-  } catch (e) {
-    const res = await fetch("/api/snapshot");
-    const doc = await res.json();
-    if (doc.error) throw new Error(doc.detail || doc.error);
-    return doc;
-  }
+    const h = await fetch("/runs/history.json", { cache: "no-store" });
+    if (h.ok) history = await h.json();
+  } catch (e) { /* the history is optional */ }
+  return { latest, history };
 }
 
 load()

@@ -189,8 +189,11 @@ on:
 
 The published documents are what the deployed dashboards read:
 
-* **Vercel** — `api/snapshot.js` fetches the files from the `runs` branch and
-  `/dashboard` renders them. No database is exposed to the internet.
+* **Vercel** — the build embeds `runs/latest.json` and `runs/history.json` in the
+  site and `/dashboard` renders them. No database is exposed to the internet and
+  no runtime call is involved (an earlier version fetched the files from GitHub
+  at request time; Vercel's edge runtime cannot reach github.com, so the run is
+  now part of the build).
 * **Streamlit Community Cloud** — the `dashboard/` app reads a *public* Postgres
   (Neon, Supabase, Aiven) that the pipeline writes to; the DSN comes from
   `st.secrets`.

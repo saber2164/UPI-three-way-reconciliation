@@ -131,6 +131,11 @@ Kafka by the generator and upserted into Postgres by a separate sink.
 
 ## Documentation
 
+📖 **The documentation site is deployed at
+[https://upi-three-way-reconciliation.vercel.app](https://upi-three-way-reconciliation.vercel.app)**
+— it is generated from the markdown in this repository, so it can never drift
+from the source.  Every push to `main` rebuilds and redeploys it.
+
 | Document | What it covers |
 |---|---|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | The event-time model, the joins, the sinks, the data model of every table, the state and checkpointing |

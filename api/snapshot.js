@@ -9,7 +9,9 @@
  */
 const REPO = "saber2164/UPI-three-way-reconciliation";
 const BRANCH = "runs";
-const RAW = `https://raw.githubusercontent.com/${REPO}/${BRANCH}`;
+// The explicit "refs/heads/<branch>" form is required: with the short form
+// raw.githubusercontent.com would read "runs" as the file path.
+const RAW = `https://raw.githubusercontent.com/${REPO}/refs/heads/${BRANCH}/runs`;
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",

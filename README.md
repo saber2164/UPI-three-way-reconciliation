@@ -146,6 +146,7 @@ from the source.  Every push to `main` rebuilds and redeploys it.
 | [docs/FAILURE_LOG.md](docs/FAILURE_LOG.md) | What broke while building this, the exact error, the root cause, the fix and how it was verified |
 | [docs/OPERATIONS.md](docs/OPERATIONS.md) | The resource envelope, the tuning knobs, the troubleshooting matrix, the reset procedures |
 | [docs/VERIFICATION.md](docs/VERIFICATION.md) | What the tests assert and the measured results |
+| [docs/STUDY_GUIDE.md](docs/STUDY_GUIDE.md) | **The explain-it-from-zero document**: the problem in plain words, how one payment flows through, the six ideas that make it work, and ~90 questions with answers (domain, technology, correctness, trade-offs, scale, compliance, market) plus a self-check quiz |
 | [docs/MARKET_RESEARCH.md](docs/MARKET_RESEARCH.md) | What practitioners say about payment reconciliation, and the ten gaps the research exposed |
 | [docs/REDDIT_POSTS.md](docs/REDDIT_POSTS.md) | The drafts for asking that community — a post and five replies, none of them posted |
 

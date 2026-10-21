@@ -24,6 +24,7 @@ const PAGES = [
   { src: "docs/FAILURE_LOG.md", out: "docs/failure-log.html", title: "Failure log" },
   { src: "docs/OPERATIONS.md", out: "docs/operations.html", title: "Operations" },
   { src: "docs/VERIFICATION.md", out: "docs/verification.html", title: "Verification" },
+  { src: "docs/STUDY_GUIDE.md", out: "docs/study-guide.html", title: "Study guide" },
 ];
 
 const REPO = "https://github.com/saber2164/UPI-three-way-reconciliation";

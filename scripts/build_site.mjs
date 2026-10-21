@@ -29,10 +29,13 @@ const PAGES = [
 const REPO = "https://github.com/saber2164/UPI-three-way-reconciliation";
 
 function nav(current) {
-  const items = PAGES.map(
-    (p) =>
-      `<a class="nav-link${p.out === current ? " is-active" : ""}" href="/${p.out}">${p.title}</a>`,
-  ).join("\n      ");
+  const items = [
+    `<a class="nav-link${current === "dashboard.html" ? " is-active" : ""}" href="/dashboard">Live simulation</a>`,
+    ...PAGES.map(
+      (p) =>
+        `<a class="nav-link${p.out === current ? " is-active" : ""}" href="/${p.out}">${p.title}</a>`,
+    ),
+  ].join("\n      ");
   return `
     <nav class="nav">
       <a class="brand" href="/">
@@ -96,6 +99,12 @@ async function main() {
   );
   console.log("  scripts/site.css -> site/assets/style.css");
 
+  await copyFile(
+    path.join(root, "scripts", "dashboard.html"),
+    path.join(out, "dashboard.html"),
+  );
+  console.log("  scripts/dashboard.html -> site/dashboard.html");
+
   // A tiny JSON index so the deployment has a machine-readable description.
   await writeFile(
     path.join(out, "site.json"),
@@ -103,7 +112,10 @@ async function main() {
       {
         name: "UPI three-way reconciliation",
         repository: REPO,
-        pages: PAGES.map((p) => ({ title: p.title, path: "/" + p.out, source: p.src })),
+        pages: [
+          { title: "Live simulation", path: "/dashboard", source: "the simulation workflow" },
+          ...PAGES.map((p) => ({ title: p.title, path: "/" + p.out, source: p.src })),
+        ],
       },
       null,
       2,

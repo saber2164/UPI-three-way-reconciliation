@@ -1,0 +1,104 @@
+name: simulation
+
+# The reconciliation pipeline is a batch simulation: GitHub Actions runs the
+# whole stack on a runner, lets it produce traffic, validates the result and
+# publishes the metrics.  The Vercel dashboard and the Streamlit app read
+# those metrics, so the simulation is visible without a long-lived server.
+on:
+  schedule:
+    # every 30 minutes, off the top of the hour
+    - cron: "13,43 * * * *"
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: "How long to let the pipeline run"
+        default: "30"
+
+concurrency:
+  group: simulation
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  simulate:
+    name: run the reconciliation simulation
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      POSTGRES_DSN: postgresql://app:app@localhost:5432/fintech
+      MINUTES: ${{ github.event.inputs.minutes || '30' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start the stack
+        run: docker compose up -d --build
+
+      - name: Wait for the pipeline to decide
+        run: |
+          set -euo pipefail
+          deadline=$(( $(date +%s) + 600 ))
+          while [ "$(date +%s)" -lt "$deadline" ]; do
+            n=$(docker compose exec -T postgres psql -U app -d fintech -t \
+                  -c "select count(*) from recon.match_results" 2>/dev/null | tr -d ' ' || echo 0)
+            echo "decisions so far: ${n:-0}"
+            if [ "${n:-0}" -gt 100 ]; then break; fi
+            sleep 20
+          done
+
+      - name: Unit tests
+        run: |
+          pip install --quiet pytest psycopg2-binary
+          python -m pytest tests -q -m "not integration"
+
+      - name: Let the traffic age so the recall window is meaningful
+        run: |
+          set -euo pipefail
+          minutes="${MINUTES:-30}"
+          echo "waiting ${minutes} minutes for the late-settlement repair window"
+          sleep $(( minutes * 60 ))
+
+      - name: Integration tests
+        run: python -m pytest tests -q -m integration
+
+      - name: Build the gold layer
+        run: make dbt
+
+      - name: Snapshot the metrics
+        run: |
+          python3 scripts/snapshot_metrics.py \
+            --dsn "$POSTGRES_DSN" \
+            --out runs/latest.json \
+            --history runs/history.json
+
+      - name: Publish the metrics to the runs branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          snap="$(mktemp -d)"
+          cp runs/latest.json runs/history.json "$snap"/
+          cd "$snap"
+          git init -q -b runs
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "simulation run $(date -u +%FT%TZ)"
+          git push -f \
+            "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            runs
+          echo "published to the runs branch"
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v || true
+
+      - name: Upload the metrics as a build artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulation-metrics
+          path: runs/
+          retention-days: 30

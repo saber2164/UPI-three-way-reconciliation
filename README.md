@@ -220,6 +220,22 @@ scaled values at submit time. Use `TIME_SCALE=1` for production timing.
 
 ---
 
+## Where it runs
+
+| deployment | how |
+|---|---|
+| **your laptop** | `make up` — the whole stack in Docker, ~7 GB of memory |
+| **GitHub Actions, no server at all** | the `simulation` workflow runs the whole stack on a runner every 30 minutes, validates it and publishes the metrics to the `runs` branch |
+| **Vercel (the dashboard)** | `/dashboard` reads the published run through `api/snapshot.js` — the deployment is already live at [upi-three-way-reconciliation.vercel.app](https://upi-three-way-reconciliation.vercel.app) |
+| **Streamlit Community Cloud** | the `dashboard/` app, pointed at a public Postgres (Neon/Supabase/Aiven) — the DSN comes from `st.secrets` |
+| **a container host, continuously** | the same `docker compose` on a VPS / Fly.io / ECS, with a managed Postgres and the Iceberg warehouse on R2 or S3 — see [docs/OPERATIONS.md](docs/OPERATIONS.md) |
+
+Flink itself cannot run on Cloudflare Workers or Vercel: it is a long-lived
+JVM with stateful operators, RocksDB checkpoints and a JobManager/TaskManager
+pair. Everything *around* it can.
+
+---
+
 ## Known limitations
 
 * **The two sinks are not atomic with each other.** `recon.match_results` and

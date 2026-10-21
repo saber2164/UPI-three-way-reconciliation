@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live simulation · UPI three-way reconciliation</title>
+<meta name="description" content="The latest run of the UPI three-way reconciliation simulation, published by the GitHub Actions workflow.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⟕</text></svg>">
+<link rel="stylesheet" href="/assets/style.css">
+<style>
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 0 0 28px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+  .card .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+  .card .value { font-size: 27px; font-weight: 640; letter-spacing: -0.02em; margin-top: 6px; }
+  .card .sub { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+  .ok { color: var(--green); }
+  .warn { color: #f0b37e; }
+  .bad { color: #f38ba8; }
+  .panel { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin: 0 0 28px; }
+  .panel h2 { margin: 0 0 12px; font-size: 17px; border: 0; padding: 0; }
+  .status { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); margin-bottom: 24px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+  .dot.live { background: var(--green); box-shadow: 0 0 0 4px rgba(93, 219, 160, 0.15); }
+  .spark { display: flex; align-items: flex-end; gap: 3px; height: 64px; margin-top: 6px; }
+  .spark div { flex: 1; background: var(--accent-soft); border-top: 2px solid var(--accent); border-radius: 2px 2px 0 0; min-height: 2px; }
+  .muted { color: var(--muted); }
+  .mono { font-family: var(--mono); font-size: 13px; }
+</style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="brand" href="/">
+      <span class="brand-mark">⟕</span>
+      <span>UPI three-way reconciliation</span>
+    </a>
+    <div class="nav-links">
+      <a class="nav-link is-active" href="/dashboard">Live simulation</a>
+      <a class="nav-link" href="/">Overview</a>
+      <a class="nav-link" href="/docs/architecture">Architecture</a>
+      <a class="nav-link" href="/docs/decisions">Decisions</a>
+      <a class="nav-link" href="/docs/failure-log">Failure log</a>
+      <a class="nav-link" href="/docs/operations">Operations</a>
+      <a class="nav-link" href="/docs/verification">Verification</a>
+      <a class="nav-link nav-github" href="https://github.com/saber2164/UPI-three-way-reconciliation" target="_blank" rel="noreferrer">GitHub</a>
+    </div>
+  </nav>
+
+  <main class="page">
+    <h1>Live simulation</h1>
+    <p class="muted">
+      The pipeline runs in a GitHub Actions job (the whole Docker stack on a
+      runner), validates itself, and publishes the result here.  The numbers
+      below are the latest published run.
+    </p>
+
+    <div class="status" id="status">
+      <span class="dot" id="dot"></span>
+      <span id="status-text">Loading the latest run…</span>
+    </div>
+
+    <div class="grid" id="cards"></div>
+
+    <div class="panel">
+      <h2>Detection quality by fault class</h2>
+      <div id="recall"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Finance control total</h2>
+      <div id="control"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Decision history across published runs</h2>
+      <div class="spark" id="spark"></div>
+      <p class="muted mono" id="spark-note"></p>
+    </div>
+
+    <div class="panel">
+      <h2>Merchant health (last 15 min of the run)</h2>
+      <div id="merchants"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Alerts raised in the run</h2>
+      <div id="alerts"></div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>Published by the <code>simulation</code> GitHub Actions workflow &mdash;
+      <a href="https://github.com/saber2164/UPI-three-way-reconciliation">saber2164/UPI-three-way-reconciliation</a>.</p>
+  </footer>
+
+<script>
+const fmtInt = (n) => (n === null || n === undefined ? "—" : Number(n).toLocaleString("en-IN"));
+const fmtPct = (n) => (n === null || n === undefined ? "—" : Number(n).toFixed(2) + "%");
+const fmtRs = (n) => (n === null || n === undefined ? "—" : "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 }));
+
+function card(label, value, sub, cls) {
+  return `<div class="card"><div class="label">${label}</div>
+    <div class="value ${cls || ""}">${value}</div>
+    <div class="sub">${sub || ""}</div></div>`;
+}
+
+function table(rows, head) {
+  if (!rows || !rows.length) return '<p class="muted">No rows in this run.</p>';
+  const cols = Object.keys(rows[0]);
+  return `<table><thead><tr>${cols.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+    rows.map((r) => `<tr>${cols.map((c) => `<td>${r[c]}</td>`).join("")}</tr>`).join("") +
+    "</tbody></table>";
+}
+
+function render(doc) {
+  const d = doc.latest;
+  const status = document.getElementById("status");
+  const dot = document.getElementById("dot");
+  const text = document.getElementById("status-text");
+  dot.className = "dot live";
+  text.innerHTML = `Run published <strong>${new Date(d.generated_at).toUTCString()}</strong> &middot; ` +
+    `samples aged ${d.age_minutes} min &middot; ` +
+    `<a href="https://github.com/saber2164/UPI-three-way-reconciliation/actions">workflow logs</a>`;
+
+  const recallCls = d.recall_overall_pct >= 95 ? "ok" : "warn";
+  document.getElementById("cards").innerHTML = [
+    card("Decisions", fmtInt(d.decisions), "in the published run"),
+    card("Match rate", fmtPct(d.match_rate_pct), "MATCHED / all decisions"),
+    card("Final recall", fmtPct(d.recall_overall_pct), "against the injected-fault oracle", recallCls),
+    card("Late corrections", fmtInt(d.late_corrections), "MISSING_SETTLEMENT → MATCHED", "ok"),
+    card("False positives", fmtInt(d.false_positives), "exceptions without an injected fault", d.false_positives ? "bad" : "ok"),
+    card("Regressions", fmtInt(d.regressions), "a correction undone by a replay", d.regressions ? "bad" : "ok"),
+  ].join("");
+
+  document.getElementById("recall").innerHTML = table(
+    (d.recall || []).map((r) => ({
+      fault: r.fault,
+      samples: fmtInt(r.samples),
+      "final recall": fmtPct(r.final_recall_pct),
+      "initial recall": fmtPct(r.samples ? (100 * r.initial_ok) / r.samples : 0),
+    })),
+  );
+
+  const c = d.control_total || {};
+  document.getElementById("control").innerHTML = table([
+    { bucket: "gross (switch value)", inr: fmtRs(c.gross_inr) },
+    { bucket: "reconciled", inr: fmtRs(c.reconciled_inr) },
+    { bucket: "amount mismatch", inr: fmtRs(c.mismatch_inr) },
+    { bucket: "outstanding settlement", inr: fmtRs(c.outstanding_inr) },
+    { bucket: "missing callback", inr: fmtRs(c.missing_callback_inr) },
+    { bucket: "difference (must be 0)", inr: fmtRs(c.difference_inr) },
+  ]);
+
+  const hist = doc.history || [];
+  const max = Math.max(1, ...hist.map((h) => h.decisions || 0));
+  document.getElementById("spark").innerHTML = hist.map((h) =>
+    `<div style="height:${Math.max(2, (100 * (h.decisions || 0)) / max)}%" title="${h.generated_at}: ${fmtInt(h.decisions)} decisions"></div>`,
+  ).join("");
+  document.getElementById("spark-note").textContent = hist.length
+    ? `${hist.length} published runs, ${hist[0].generated_at} → ${hist[hist.length - 1].generated_at}`
+    : "no history yet";
+
+  document.getElementById("merchants").innerHTML = table(
+    (d.merchants || []).map((m) => ({
+      merchant_id: m.merchant_id,
+      txns: fmtInt(m.txns),
+      "unmatched %": m.unmatched_pct,
+    })),
+  );
+
+  document.getElementById("alerts").innerHTML = table(
+    (d.alerts || []).map((a) => ({
+      merchant_id: a.merchant_id,
+      window_start: a.window_start,
+      "unmatched rate": a.unmatched_rate,
+      message: a.message,
+    })),
+  );
+}
+
+fetch("/api/snapshot")
+  .then((r) => r.json())
+  .then((doc) => {
+    if (doc.error) throw new Error(doc.detail || doc.error);
+    render(doc);
+  })
+  .catch((err) => {
+    document.getElementById("status-text").innerHTML =
+      `<strong>No published run yet.</strong> ${err.message}. ` +
+      `The <code>simulation</code> workflow publishes one every 30 minutes.`;
+  });
+</script>
+</body>
+</html>

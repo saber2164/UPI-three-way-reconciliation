@@ -8,6 +8,8 @@ Design notes:
     lifecycle).
   * Finance control totals are shown next to detection quality.  A pipeline that
     misses breaks is not "accurate"; a pipeline that invents them is not "safe".
+  * The same app runs in three places: the Docker stack (env var), Streamlit
+    Community Cloud (``st.secrets``) and anywhere else with a public Postgres.
 """
 from __future__ import annotations
 
@@ -18,17 +20,35 @@ import plotly.express as px
 import psycopg2
 import streamlit as st
 
-DSN = os.environ.get(
-    "POSTGRES_DSN",
-    "postgresql://app:app@postgres:5432/fintech",
-)
-TIME_SCALE = float(os.environ.get("TIME_SCALE", "60"))
-
 st.set_page_config(
     page_title="UPI Reconciliation",
     page_icon="₹",
     layout="wide",
 )
+
+
+def _dsn() -> str:
+    """
+    Resolve the Postgres DSN.
+
+    Streamlit Community Cloud injects secrets through ``st.secrets``; the Docker
+    stack uses the environment.  Both are supported so the dashboard can be
+    published without touching the code.
+    """
+    try:
+        secret = st.secrets.get("POSTGRES_DSN")
+        if secret:
+            return str(secret)
+    except Exception:  # noqa: BLE001 - no secrets configured (local run)
+        pass
+    return os.environ.get(
+        "POSTGRES_DSN",
+        "postgresql://app:app@postgres:5432/fintech",
+    )
+
+
+DSN = _dsn()
+TIME_SCALE = float(os.environ.get("TIME_SCALE", "60"))
 
 
 @st.cache_resource
@@ -51,6 +71,15 @@ def q(sql: str) -> pd.DataFrame:
 def safe_q(sql: str) -> pd.DataFrame:
     try:
         return q(sql)
+    except psycopg2.OperationalError as exc:
+        # The database is not reachable yet (the pipeline is still starting, or
+        # the hosted Postgres is not exposed to this app).  Say so instead of
+        # dumping a driver error at the reader.
+        st.warning(
+            "Cannot reach the reconciliation database. It must be reachable from "
+            f"where this app runs. ({exc.__class__.__name__}: {str(exc).splitlines()[0]})"
+        )
+        return pd.DataFrame()
     except Exception as exc:  # tables may not exist for the first few seconds
         st.warning(f"Query failed: {exc}")
         return pd.DataFrame()

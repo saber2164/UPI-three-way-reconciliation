@@ -162,6 +162,69 @@ bound, so the stack has to have been running for ~25 minutes at 60×.
 
 ---
 
+## Running the simulation on GitHub (no server at all)
+
+The pipeline does not need a long-lived host. The `simulation` GitHub Actions
+workflow brings the whole stack up **on the runner**, lets it produce traffic,
+validates itself, publishes the metrics and tears the stack down again:
+
+```yaml
+on:
+  schedule:
+    - cron: "13,43 * * * *"     # every 30 minutes
+  workflow_dispatch:             # or run it on demand
+```
+
+| step | what it does |
+|---|---|
+| start the stack | `docker compose up -d --build` (the Flink jobs submit themselves) |
+| wait | until the pipeline has produced decisions |
+| unit tests | the laptop suite, no Docker needed |
+| age the traffic | waits so the late-settlement repair window has samples |
+| integration tests | the recall and correction assertions |
+| gold layer | `make dbt` |
+| snapshot | `scripts/snapshot_metrics.py` writes `runs/latest.json` and `runs/history.json` |
+| publish | the two files are committed to the **`runs` branch** of this repository |
+| tear down | `docker compose down -v` |
+
+The published documents are what the deployed dashboards read:
+
+* **Vercel** — `api/snapshot.js` fetches the files from the `runs` branch and
+  `/dashboard` renders them. No database is exposed to the internet.
+* **Streamlit Community Cloud** — the `dashboard/` app reads a *public* Postgres
+  (Neon, Supabase, Aiven) that the pipeline writes to; the DSN comes from
+  `st.secrets`.
+
+### Deploying the Streamlit dashboard to Streamlit Community Cloud
+
+The `dashboard/` directory is already a Streamlit Cloud app:
+
+1. Push the repository to GitHub (done).
+2. In [share.streamlit.io](https://share.streamlit.io) → **Deploy an existing app**
+   → pick this repository → set the app path to `dashboard`.
+3. Add the secret `POSTGRES_DSN` (a public Postgres URL, e.g.
+   `postgresql://user:pass@ep-xxx.eu-central-1.aws.neon.tech/neondb?sslmode=require`).
+4. The app reads the DSN from `st.secrets` (Streamlit Cloud) or from the
+   environment (the Docker stack) — no code change either way.
+
+`dashboard/requirements.txt` pins the dependencies; the `Dockerfile` next to it
+is for the local stack.
+
+### Deploying the pipeline itself to a container host
+
+If you want the pipeline running *continuously* (not as a 30-minute batch), it
+needs a container host, because Flink is a long-lived JVM with stateful
+operators and RocksDB checkpoints:
+
+| host | notes |
+|---|---|
+| a small VPS (Hetzner, DigitalOcean, Fly.io) | the simplest: `docker compose up -d` on the box, with a managed Postgres (Neon) and the Iceberg warehouse on R2/S3 |
+| Fly.io / Render / Railway / Northflank | containers with volumes; the compose file needs the service names and a volume for the checkpoints |
+| AWS ECS / EKS, Azure Container Apps, GKE | the "real" option; GCS/S3 for the checkpoint directory instead of a local volume |
+| Google Cloud Run | only with the checkpoints on GCS and the Kafka on a managed cluster — the JobManager/TaskManager pair is not a good fit for request-scoped containers |
+
+---
+
 ## Iceberg maintenance
 
 The lake is append-only, so it grows with the decision volume. Compaction,

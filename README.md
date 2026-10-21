@@ -146,10 +146,16 @@ from the source.  Every push to `main` rebuilds and redeploys it.
 | [docs/FAILURE_LOG.md](docs/FAILURE_LOG.md) | What broke while building this, the exact error, the root cause, the fix and how it was verified |
 | [docs/OPERATIONS.md](docs/OPERATIONS.md) | The resource envelope, the tuning knobs, the troubleshooting matrix, the reset procedures |
 | [docs/VERIFICATION.md](docs/VERIFICATION.md) | What the tests assert and the measured results |
+| [docs/MARKET_RESEARCH.md](docs/MARKET_RESEARCH.md) | What practitioners say about payment reconciliation, and the ten gaps the research exposed |
 
 The [failure log](docs/FAILURE_LOG.md) is the one to read if you want to know
-what this cost: 26 distinct failures, from a missing Hadoop jar to a Kafka
+what this cost: 29 distinct failures, from a missing Hadoop jar to a Kafka
 broker that starved the event-time watermark.
+
+The [market research](docs/MARKET_RESEARCH.md) is the external check: it finds
+the same three-leg problem described by people running these systems today, and
+it lists the ten things this project still does not do — the sharpest being a
+"money in transit" state and a per-partner cutoff calendar.
 
 ---
 

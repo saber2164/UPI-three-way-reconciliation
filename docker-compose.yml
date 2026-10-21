@@ -176,6 +176,8 @@ services:
     restart: unless-stopped
 
   flink-taskmanager:
+    build:
+      context: ./platform/flink
     image: upi-recon-flink:1.19
     command: taskmanager
     environment:
@@ -203,6 +205,8 @@ services:
     restart: unless-stopped
 
   flink-sql-gateway:
+    build:
+      context: ./platform/flink
     image: upi-recon-flink:1.19
     command: ["bash", "-c", "/opt/flink/bin/sql-gateway.sh start-foreground"]
     environment:
@@ -226,6 +230,8 @@ services:
     restart: unless-stopped
 
   flink-sql-submit:
+    build:
+      context: ./platform/flink
     image: upi-recon-flink:1.19
     command: ["bash", "/opt/flink/sql/submit.sh"]
     environment:
@@ -268,6 +274,7 @@ services:
     restart: unless-stopped
 
   truth-sink:
+    build: ./generator
     image: upi-recon-generator:local
     command: ["python", "truth_sink.py"]
     environment:

@@ -147,6 +147,7 @@ from the source.  Every push to `main` rebuilds and redeploys it.
 | [docs/OPERATIONS.md](docs/OPERATIONS.md) | The resource envelope, the tuning knobs, the troubleshooting matrix, the reset procedures |
 | [docs/VERIFICATION.md](docs/VERIFICATION.md) | What the tests assert and the measured results |
 | [docs/MARKET_RESEARCH.md](docs/MARKET_RESEARCH.md) | What practitioners say about payment reconciliation, and the ten gaps the research exposed |
+| [docs/REDDIT_POSTS.md](docs/REDDIT_POSTS.md) | The drafts for asking that community — a post and five replies, none of them posted |
 
 The [failure log](docs/FAILURE_LOG.md) is the one to read if you want to know
 what this cost: 29 distinct failures, from a missing Hadoop jar to a Kafka

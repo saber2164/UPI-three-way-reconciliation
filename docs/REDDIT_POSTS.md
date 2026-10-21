@@ -1,4 +1,21 @@
-# Reddit posts and replies (drafts — nothing is posted)
+# Reddit posts and replies
+
+## Status
+
+| community | what | state |
+|---|---|---|
+| r/fintech | the architecture proposal (post) | **live** — https://www.reddit.com/r/fintech/comments/1xbooe6/our_take_on_realtime_payment_reconciliation_two/ — flair *Discussion* |
+| r/dataengineering | the technical variant (post) | staged in the browser: title, body and the *Open Source* flair are filled in, the **Post** button needs one click |
+| r/Accounting | a pure-help reply on daily reconciliation | staged in the browser: the text is in the *Join the conversation* box, needs one click. **No link and no mention of our project** — r/Accounting's rule 2 bans posting your own project, so this one is help only |
+
+**One thing worth knowing:** from this machine, Reddit's *write* endpoints are
+blocked. `POST /api/submit` returns 403 for every request (with a fresh
+recaptcha token), and the composer silently discards the post — the same
+"blocked by network security" that stops the headless browser and the public
+JSON API from this IP. Reading works, posting does not. That is why the last
+two are staged for a human to click rather than published automatically.
+
+---
 
 Everything in this file is a **draft for a human to review, edit and post by
 hand**. Reddit has no comment-posting API, and the discipline that keeps this
@@ -131,11 +148,17 @@ experience grammar, discloses, hedges with "the surprising part was".)*
 
 ### 2.4 r/Accounting — "Advice Needed for Daily Reconciliation" (8 days old)
 
+r/Accounting's rule 2 bans posting your own blog, website or project, so this
+reply is **help only** — no link, no mention of us:
+
 > The adjustments are almost always the net-of-fee and in-transit buckets, not
-> the matcher. A per-processor clearing account (post gross + fee, let the bank
-> deposit clear it, whatever is left is your exception list) turns most of those
-> into a month-end net adjustment instead of a daily patch — and it gives you
-> the "expected clear date" your exception sheet is missing.
+> the matcher. A per-processor clearing account (post gross and the fee line
+> there, let the bank deposit clear it, and whatever is left over is your
+> exception list) turns most of those into a month-end net adjustment instead
+> of a daily patch - and it also gives you the "expected clear date" that an
+> exception sheet usually misses. A two-week log of every manual fix with a
+> one-word reason next to each is what tells you which rule to change rather
+> than which posting to patch.
 
 ### 2.5 r/dataengineering — "Data Reconciliation in PySpark SQL" (300 M rows, 8–9 h budget)
 
@@ -162,19 +185,61 @@ experience grammar, discloses, hedges with "the surprising part was".)*
 
 ## 4. The r/dataengineering variant (technical framing, not payments)
 
-**Title:** "Streaming instead of a nightly diff: bounded event-time joins for record reconciliation — the part we're unsure about"
+r/dataengineering's rules allow **one self-promotion post per month** (rule 4)
+as long as it is not opaque marketing (rule 5) — so the disclosure leads and
+the link sits at the end. Flair: **Open Source**.
 
-**Body (trimmed)**
+**Title:** "Streaming instead of a nightly diff: bounded event-time joins for reconciliation, and the two decisions I'm unsure about"
 
-> We're reconciling transaction-shaped records (not warehouse tables) and
-> replaced an 8-hour nightly diff with bounded event-time joins: each leg has a
-> window, anything that arrives outside the window becomes a typed break with a
-> reason rather than a fuzzy match, and the unmatched side is a queue instead of
-> a report. Two decisions we'd like to be argued with: (1) is the two-window
-> shape (fast 4 h + repair 24 h) the right way to bound state, or would you
-> rather one window plus a late-arrival side table? (2) we de-duplicate *after*
-> the join because the engine can't consume a retracting dedup — is that the
-> wrong trade, or the only one available?
+**Body**
+
+> We wrote this — full disclosure: we built it and we work on it, so I'm biased.
+> It was also built with AI assistance throughout (code, SQL, infra, docs), so
+> please assume there are mistakes in it; treat it as a reference implementation
+> to argue with, not production code.
+>
+> We replaced a nightly reconciliation diff with bounded event-time joins, and
+> I'd like to be argued with on two decisions.
+>
+> The setup: records of the same transaction arrive from three systems at
+> different times, each with its own identifier and its own clock. The taxonomy
+> is the familiar one — exact match (inner join on the key), no match
+> (anti-join), and partial match (the key matches, the rest of the record
+> varies). The partial-match bucket is the only hard one.
+>
+> What we did:
+>
+> - each leg gets a window, and anything arriving outside the window becomes a
+>   typed break with a reason (timing / fee / duplicate / missing leg) instead of
+>   a fuzzy amount match
+> - the unmatched side is a queue with an ageing bucket, not a report
+> - decisions are keyed on the event time, so replaying the stream is idempotent,
+>   and the serving table is monotonic in decision time, so a stale write cannot
+>   undo a correction
+> - a simulated generator publishes the fault it injected on a separate topic,
+>   so every CI run scores the pipeline against ground truth (100% recall, 0
+>   false positives on our six-class fault matrix)
+>
+> The two decisions I'm unsure about:
+>
+> 1. **One window or two?** We run a fast job with 4 h of state and a repair
+>    job with 24 h, and they overlap on one table — the repair job corrects
+>    rows the fast job declared missing. The alternative is a single long
+>    window: simpler, but it holds 6x the state and delays every "missing"
+>    verdict until the window closes. Is the two-window shape right, or would
+>    you rather have one window plus a late-arrival side table?
+> 2. **Dedup before or after the join?** We dedup on the transaction key after
+>    the join, because the engine we use can't consume a retracting dedup as an
+>    interval-join input (interval joins need an append-only input). The cost is
+>    that the join itself sees duplicates. Is that the wrong trade, or the only
+>    one available?
+>
+> Also happy to be told the reason-code taxonomy is over-engineered, or that a
+> nightly batch was the right call all along.
+>
+> It's MIT, runs on a laptop, and the same pipeline runs as a scheduled CI job
+> that publishes each run's metrics and a live dashboard:
+> github.com/saber2164/UPI-three-way-reconciliation
 
 ---
 

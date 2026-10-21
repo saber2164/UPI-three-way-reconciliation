@@ -6,7 +6,13 @@
  * of this repository.  This function serves that document so the dashboard
  * page can show the simulation without any long-lived server and without
  * exposing a database to the internet.
+ *
+ * It runs on the edge runtime: there is no cold start, and the fetch to
+ * raw.githubusercontent.com happens from the edge next to the reader.
  */
+export const runtime = "edge";
+export const config = { maxDuration: 30 };
+
 const REPO = "saber2164/UPI-three-way-reconciliation";
 const BRANCH = "runs";
 // The explicit "refs/heads/<branch>" form is required: with the short form
@@ -23,8 +29,10 @@ const CORS = {
 async function fetchJson(name) {
   const res = await fetch(`${RAW}/${name}`, {
     headers: { "User-Agent": "upi-recon-dashboard" },
+    signal: AbortSignal.timeout(8000),
+    cache: "no-store",
   });
-  if (!res.ok) throw new Error(`${name}: ${res.status}`);
+  if (!res.ok) throw new Error(`${name}: HTTP ${res.status}`);
   return res.json();
 }
 

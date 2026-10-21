@@ -78,17 +78,26 @@ and `TIME_SCALE=60`):
 
 | fault class | samples (> 12 min old) | final recall |
 |---|---|---|
-| `AMOUNT_DRIFT` | 1 279 | **100.00 %** |
-| `DUP_SWITCH` | 1 285 | **100.00 %** |
-| `LATE_SETTLE` | 1 286 | **100.00 %** |
-| `MISSING_CALLBACK` | 1 313 | **100.00 %** |
-| `MISSING_SETTLE` | 1 232 | **100.00 %** |
-| `OUT_OF_ORDER` | 1 286 | **100.00 %** |
+| `AMOUNT_DRIFT` | 1 510 | **100.00 %** |
+| `DUP_SWITCH` | 1 471 | **100.00 %** |
+| `LATE_SETTLE` | 1 518 | **100.00 %** (see the note) |
+| `MISSING_CALLBACK` | 1 496 | **100.00 %** |
+| `MISSING_SETTLE` | 1 493 | **100.00 %** |
+| `OUT_OF_ORDER` | 1 436 | **100.00 %** |
 
 * false positives (an exception without an injected fault): **0**
 * status regressions (`MATCHED → MISSING_SETTLEMENT`): **0**
 * misclassified statuses (neither the expected final nor the expected
   initial): **0**
+
+**The note on `LATE_SETTLE`.** Its *final* status (`MATCHED`) only exists once
+the repair job has seen the late settlement, which arrives 5–20 minutes after
+the switch. So the recall of a cohort depends on its age: over the samples
+older than 30 minutes it is 100 %, while the 12–30 minute cohort still shows
+the corrections in flight (88 % measured mid-run). The five classes whose
+verdict is immediate are at 100 % for every cohort. This is why the
+integration test uses an age filter of `max(leg delay, settlement bound)` and
+skips the late case until the samples are old enough.
 
 ### The correction trail
 
@@ -107,7 +116,7 @@ expired), the second at the settlement time (the repair job caught it).
 
 | bucket | rupees |
 |---|---|
-| gross | 185 811 140.93 |
+| gross | 358 109 202.74 |
 | reconciled (`MATCHED`) | |
 | mismatch (`AMOUNT_MISMATCH`) | |
 | outstanding (`MISSING_SETTLEMENT`) | |
@@ -120,12 +129,15 @@ The identity holds to the paisa, in both rupees and in transaction counts.
 
 | property | measured |
 |---|---|
-| decisions | 85 219 |
-| audit rows | 86 505 (= decisions + the corrections) |
+| decisions | 164 386 |
+| audit rows | 165 906 (= decisions + the corrections) |
+| late corrections | 1 499 RRNs `MISSING_SETTLEMENT → MATCHED` |
+| alerts | 17 (all for the injected bad merchant `M0001`) |
+| KPI rows | 5 400 |
 | throughput | ~100 decisions/s, matching the generator |
 | consumer lag | 1–2.5 k messages, stable |
 | checkpoint | 5–15 MB, 80–350 ms, 0 failures |
-| TaskManager | 0 restarts, 0 `OutOfMemoryError`, ~54 % of its limit |
+| TaskManager | 0 restarts, 0 `OutOfMemoryError`, 1.54 GB of 3 GB |
 | decision latency | 245 s for `MISSING_SETTLEMENT` (exactly the scaled 4 h bound), 0.2–1 s for a matched row after its settlement arrives |
 | late corrections | 5–20 min after the switch, as designed |
 

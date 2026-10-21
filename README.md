@@ -1,5 +1,8 @@
 # UPI three-way reconciliation
 
+[![simulation](https://github.com/saber2164/UPI-three-way-reconciliation/actions/workflows/simulation.yml/badge.svg)](https://github.com/saber2164/UPI-three-way-reconciliation/actions/workflows/simulation.yml)
+[![docs](https://img.shields.io/badge/docs-live%20site-6ea8fe)](https://upi-three-way-reconciliation.vercel.app)
+
 Real-time reconciliation of UPI collections across the three systems that
 record them: the **switch** log, the **merchant callback** and the **bank
 settlement**. For every payment the pipeline emits exactly one decision —

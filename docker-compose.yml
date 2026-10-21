@@ -1,0 +1,314 @@
+# Standalone stack for the UPI three-way reconciliation pipeline.
+#
+#   docker compose up -d --build
+#
+# It is intentionally self-contained - no Airflow, Debezium or Spark - so it
+# runs on a laptop with ~8 GB of Docker memory.
+name: upi-recon
+
+x-common-env: &common-env
+  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minio}
+  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minio12345}
+  AWS_REGION: ${AWS_REGION:-ap-south-1}
+  ICEBERG_REST_URI: http://iceberg-rest:8181
+  ICEBERG_WAREHOUSE: s3://warehouse/
+  KAFKA_BOOTSTRAP: kafka:9092
+  SCHEMA_REGISTRY: http://schema-registry:8081
+  POSTGRES_DSN: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-app}@postgres:5432/${POSTGRES_DB:-fintech}
+  TIME_SCALE: ${TIME_SCALE:-60}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
+      POSTGRES_DB: ${POSTGRES_DB:-fintech}
+    ports: ["5432:5432"]
+    volumes:
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-app} -d ${POSTGRES_DB:-fintech}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    mem_limit: 512m
+    restart: unless-stopped
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093,EXTERNAL://0.0.0.0:19093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:19093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_HEAP_OPTS: "-Xms512m -Xmx1g"
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    ports: ["19093:19093"]
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+    mem_limit: 1536m
+    restart: unless-stopped
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.6.0
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_HEAP_OPTS: "-Xms128m -Xmx256m"
+    ports: ["8085:8081"]
+    depends_on:
+      kafka: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8081/subjects >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    mem_limit: 512m
+    restart: unless-stopped
+
+  # MinIO's Docker Hub repository was removed in 2025.  The Bitnami legacy
+  # image is the same server binary and includes both `mc` and `curl`.
+  minio:
+    image: bitnamilegacy/minio:latest
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio12345}
+      MINIO_DEFAULT_BUCKETS: warehouse,checkpoints
+    ports: ["9000:9000", "9001:9001"]
+    volumes: [miniodata:/bitnami/minio/data]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/minio/health/live >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    mem_limit: 512m
+    restart: unless-stopped
+
+  minio-init:
+    image: bitnamilegacy/minio-client:latest
+    depends_on:
+      minio: { condition: service_healthy }
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minio} ${MINIO_ROOT_PASSWORD:-minio12345} &&
+      mc mb -p local/warehouse &&
+      mc mb -p local/checkpoints &&
+      exit 0"
+    restart: "no"
+
+  iceberg-rest:
+    image: tabulario/iceberg-rest:latest
+    environment:
+      CATALOG_WAREHOUSE: s3://warehouse/
+      CATALOG_IO__IMPL: org.apache.iceberg.aws.s3.S3FileIO
+      CATALOG_S3_ENDPOINT: http://minio:9000
+      # SmallRye maps `_` to `.` and `__` to `-`; this is `s3.path-style-access`.
+      CATALOG_S3_PATH__STYLE__ACCESS: "true"
+      CATALOG_S3_ACCESS__KEY__ID: ${AWS_ACCESS_KEY_ID:-minio}
+      CATALOG_S3_SECRET__ACCESS__KEY: ${AWS_SECRET_ACCESS_KEY:-minio12345}
+      CATALOG_URI: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-fintech}
+      CATALOG_JDBC_USER: ${POSTGRES_USER:-app}
+      CATALOG_JDBC_PASSWORD: ${POSTGRES_PASSWORD:-app}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minio}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minio12345}
+      AWS_REGION: ${AWS_REGION:-ap-south-1}
+      JAVA_OPTS: "-Xms256m -Xmx512m"
+    ports: ["8181:8181"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      minio-init: { condition: service_completed_successfully }
+    mem_limit: 768m
+    restart: unless-stopped
+
+  flink-jobmanager:
+    build:
+      context: ./platform/flink
+    image: upi-recon-flink:1.19
+    command: jobmanager
+    environment:
+      <<: *common-env
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        jobmanager.memory.process.size: 896m
+        rest.address: 0.0.0.0
+        state.checkpoints.dir: file:///opt/flink/checkpoints
+        # RocksDB keeps the interval-join state on disk and checkpoints it
+        # incrementally.  With the default heap backend a restore deserialises
+        # ~50 MB per task into the heap, which stalls the TaskManager long
+        # enough for its heartbeat to time out and the job to restart-loop.
+        state.backend.type: rocksdb
+        state.backend.incremental: true
+        execution.checkpointing.interval: 30s
+        execution.checkpointing.mode: EXACTLY_ONCE
+        execution.checkpointing.externalized-checkpoint-retention: RETAIN_ON_CANCELLATION
+        heartbeat.timeout: 120000
+        heartbeat.interval: 10000
+        s3.endpoint: http://minio:9000
+        s3.path.style.access: true
+        s3.access-key: ${AWS_ACCESS_KEY_ID:-minio}
+        s3.secret-key: ${AWS_SECRET_ACCESS_KEY:-minio12345}
+    ports: ["8087:8081"]
+    volumes:
+      - ./flink:/opt/flink/sql:ro
+      - flink-checkpoints:/opt/flink/checkpoints
+    depends_on:
+      minio-init: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8081/overview >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    mem_limit: 896m
+    restart: unless-stopped
+
+  flink-taskmanager:
+    image: upi-recon-flink:1.19
+    command: taskmanager
+    environment:
+      <<: *common-env
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        # Both jobs are chained into several slot groups; fewer slots than the
+        # scheduler needs makes the JobManager thrash on NoResourceAvailable.
+        taskmanager.numberOfTaskSlots: 4
+        taskmanager.memory.process.size: 2816m
+        state.checkpoints.dir: file:///opt/flink/checkpoints
+        state.backend.type: rocksdb
+        state.backend.incremental: true
+        heartbeat.timeout: 120000
+        heartbeat.interval: 10000
+        s3.endpoint: http://minio:9000
+        s3.path.style.access: true
+        s3.access-key: ${AWS_ACCESS_KEY_ID:-minio}
+        s3.secret-key: ${AWS_SECRET_ACCESS_KEY:-minio12345}
+    volumes:
+      - flink-checkpoints:/opt/flink/checkpoints
+    depends_on:
+      flink-jobmanager: { condition: service_healthy }
+    mem_limit: 3072m
+    restart: unless-stopped
+
+  flink-sql-gateway:
+    image: upi-recon-flink:1.19
+    command: ["bash", "-c", "/opt/flink/bin/sql-gateway.sh start-foreground"]
+    environment:
+      <<: *common-env
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        rest.address: flink-jobmanager
+        rest.port: 8081
+        sql-gateway.endpoint.rest.address: 0.0.0.0
+        sql-gateway.endpoint.rest.port: 8083
+        sql-gateway.session.default-timeout: 30min
+    ports: ["8086:8083"]
+    depends_on:
+      flink-jobmanager: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8083/v1/info >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    mem_limit: 640m
+    restart: unless-stopped
+
+  flink-sql-submit:
+    image: upi-recon-flink:1.19
+    command: ["bash", "/opt/flink/sql/submit.sh"]
+    environment:
+      <<: *common-env
+      TIME_SCALE: ${TIME_SCALE:-60}
+      FORCE_RESUBMIT: ${FORCE_RESUBMIT:-0}
+      # The SQL client sends its own configuration to the gateway when it opens the
+      # session, and the gateway then uses it to submit the job.  Without these two
+      # the client would hand over the default 0.0.0.0:8081 and the job would never
+      # reach the JobManager.
+      FLINK_PROPERTIES: |
+        rest.address: flink-jobmanager
+        rest.port: 8081
+    volumes:
+      - ./flink:/opt/flink/sql:ro
+    depends_on:
+      flink-sql-gateway: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+      minio-init: { condition: service_completed_successfully }
+    mem_limit: 640m
+    restart: "no"
+
+  recon-generator:
+    build: ./generator
+    image: upi-recon-generator:local
+    command: ["python", "txn_generator.py"]
+    environment:
+      <<: *common-env
+      TPS: ${TPS:-100}
+      FAULT_RATE: ${FAULT_RATE:-0.03}
+      TIME_SCALE: ${TIME_SCALE:-60}
+      BAD_MERCHANT: ${BAD_MERCHANT:-M0001}
+      BAD_MERCHANT_RATE: ${BAD_MERCHANT_RATE:-0.20}
+      BAD_MERCHANT_FAULT_RATE: ${BAD_MERCHANT_FAULT_RATE:-0.35}
+      FORCE_FAULT_EVERY: ${FORCE_FAULT_EVERY:-500}
+    depends_on:
+      kafka: { condition: service_healthy }
+      schema-registry: { condition: service_healthy }
+    mem_limit: 512m
+    restart: unless-stopped
+
+  truth-sink:
+    image: upi-recon-generator:local
+    command: ["python", "truth_sink.py"]
+    environment:
+      <<: *common-env
+    depends_on:
+      kafka: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    mem_limit: 256m
+    restart: unless-stopped
+
+  recon-dashboard:
+    build: ./dashboard
+    image: upi-recon-dashboard:local
+    environment:
+      <<: *common-env
+    ports: ["8503:8501"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    mem_limit: 512m
+    restart: unless-stopped
+
+  # Optional: dbt gold models.  `docker-compose --profile batch run --rm dbt`
+  dbt:
+    profiles: [batch]
+    build: ./dbt
+    image: upi-recon-dbt:local
+    environment:
+      <<: *common-env
+      POSTGRES_HOST: postgres
+    depends_on:
+      postgres: { condition: service_healthy }
+      iceberg-rest: { condition: service_started }
+    mem_limit: 1024m
+    restart: "no"
+
+volumes:
+  pgdata: {}
+  miniodata: {}
+  flink-checkpoints: {}

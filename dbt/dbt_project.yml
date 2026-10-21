@@ -1,0 +1,14 @@
+name: upi_recon
+version: "1.0"
+profile: upi_recon
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+models:
+  upi_recon:
+    +materialized: table
+    staging:
+      # The staging layer materialises the pinned Iceberg snapshot once.  A view
+      # would re-read the Iceberg metadata, manifests and Parquet files for
+      # every downstream model and every test.
+      +materialized: table

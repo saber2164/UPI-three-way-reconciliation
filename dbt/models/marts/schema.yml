@@ -1,0 +1,45 @@
+version: 2
+
+models:
+  - name: stg_match_results
+    description: Current decision per RRN, deduplicated from the Iceberg hot store.
+    columns:
+      - name: rrn
+        tests: [unique, not_null]
+      - name: match_status
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['MATCHED', 'AMOUNT_MISMATCH', 'MISSING_SETTLEMENT', 'MISSING_CALLBACK']
+
+  - name: stg_ground_truth
+    description: Injected-fault oracle.
+    columns:
+      - name: rrn
+        tests: [unique, not_null]
+      - name: expected_status
+        tests: [not_null]
+
+  - name: mart_daily_recon
+    description: Finance control totals per settlement day and merchant.
+    columns:
+      - name: match_rate_pct
+        tests: [not_null]
+
+  - name: mart_exceptions_queue
+    description: Actionable ops work queue.
+    columns:
+      - name: rrn
+        tests: [unique, not_null]
+      - name: suggested_action
+        tests: [not_null]
+
+  - name: mart_detection_quality
+    description: Recall per injected fault class, before and after late correction.
+    columns:
+      - name: fault
+        tests: [unique, not_null]
+
+  - name: mart_detection_precision
+    description: How many of the flagged exceptions were genuine injected faults.

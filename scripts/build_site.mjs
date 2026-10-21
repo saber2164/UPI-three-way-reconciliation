@@ -105,6 +105,22 @@ async function main() {
   );
   console.log("  scripts/dashboard.html -> site/dashboard.html");
 
+  // The published simulation run is embedded in the site, so the dashboard works
+  // without any runtime call (and without a CDN cache in the way).  The
+  // simulation workflow commits runs/latest.json to main, which rebuilds this.
+  const runs = path.join(root, "runs");
+  if (existsSync(path.join(runs, "latest.json"))) {
+    await mkdir(path.join(out, "runs"), { recursive: true });
+    for (const f of ["latest.json", "history.json"]) {
+      if (existsSync(path.join(runs, f))) {
+        await copyFile(path.join(runs, f), path.join(out, "runs", f));
+        console.log(`  runs/${f} -> site/runs/${f}`);
+      }
+    }
+  } else {
+    console.log("  no runs/latest.json yet (the simulation workflow publishes it)");
+  }
+
   // A tiny JSON index so the deployment has a machine-readable description.
   await writeFile(
     path.join(out, "site.json"),

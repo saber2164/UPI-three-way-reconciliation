@@ -73,23 +73,35 @@ jobs:
             --out runs/latest.json \
             --history runs/history.json
 
-      - name: Publish the metrics to the runs branch
+      - name: Publish the metrics
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          auth="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          # 1. the runs branch keeps the history (the API serves it from there)
           snap="$(mktemp -d)"
-          cp runs/latest.json runs/history.json "$snap"/
+          mkdir -p "$snap/runs"
+          cp runs/latest.json runs/history.json "$snap/runs/"
           cd "$snap"
           git init -q -b runs
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -q -m "simulation run $(date -u +%FT%TZ)"
-          git push -f \
-            "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
-            runs
+          git push -f "$auth" runs
           echo "published to the runs branch"
+
+          # 2. main carries the snapshot too, so the static site (and the
+          #    dashboard page) is rebuilt with the fresh numbers
+          cd "${GITHUB_WORKSPACE}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add runs
+          git commit -q -m "chore: publish the simulation run $(date -u +%FT%TZ)" || {
+            echo "nothing to publish (identical run)"; exit 0; }
+          git push "$auth" HEAD:main
 
       - name: Tear down
         if: always()

@@ -15,9 +15,6 @@ node_modules/
 site/
 .vercel/
 
-# the published simulation runs live on the 'runs' branch, not here
-runs/
-
 # locally installed agent skills (not part of the project)
 .agents/
 skills-lock.json

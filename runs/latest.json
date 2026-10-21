@@ -1,0 +1,40 @@
+{
+  "generated_at": "2026-10-21T08:24:38.039965+00:00",
+  "age_minutes": 25,
+  "decisions": 0,
+  "by_status": {},
+  "match_rate_pct": 0.0,
+  "audit_rows": 0,
+  "audit_rrns": 0,
+  "late_corrections": 0,
+  "regressions": 0,
+  "false_positives": 0,
+  "control_total": {
+    "gross_inr": 0,
+    "reconciled_inr": 0,
+    "mismatch_inr": 0,
+    "outstanding_inr": 0,
+    "missing_callback_inr": 0,
+    "difference_inr": 0
+  },
+  "recall": [],
+  "recall_overall_pct": 0.0,
+  "latency": {},
+  "alerts": [],
+  "merchants": [],
+  "statuses": [
+    "MATCHED",
+    "AMOUNT_MISMATCH",
+    "MISSING_SETTLEMENT",
+    "MISSING_CALLBACK"
+  ],
+  "faults": [
+    "AMOUNT_DRIFT",
+    "DUP_SWITCH",
+    "LATE_SETTLE",
+    "MISSING_CALLBACK",
+    "MISSING_SETTLE",
+    "OUT_OF_ORDER"
+  ],
+  "note": "placeholder - the simulation workflow replaces this every 30 minutes"
+}

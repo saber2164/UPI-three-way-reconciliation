@@ -88,5 +88,14 @@
     "late_corrections": 1811,
     "false_positives": 0,
     "regressions": 0
+  },
+  {
+    "generated_at": "2026-10-22T20:06:09.750371+00:00",
+    "decisions": 185124,
+    "match_rate_pct": 94.95,
+    "recall_overall_pct": 100.0,
+    "late_corrections": 1916,
+    "false_positives": 0,
+    "regressions": 0
   }
 ]

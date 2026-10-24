@@ -364,3 +364,19 @@ the reason-code taxonomy is worth it if you can keep it small, like 5-6 codes ma
 * **G5 (reason codes):** They endorse the taxonomy but insist on a hard cap (5-6 codes max) or it becomes worse than nothing. Decision: hard-cap at 6 codes + "other" bucket, add a CI guard that requires a reviewer to approve any new code.
 
 Logged in MARKET_RESEARCH.md as G1-FEEDBACK, G2-FEEDBACK, G5-FEEDBACK.
+
+---
+
+## 7.1 Second practitioner reply (2026-10-24)
+
+> "I get the explicit state IN_TRANSIT. I wouldn't say a payment is missing if it hasn't settled within a generic four hour window. I would look to partner particular settlement expectations to differentiate an expected delay, versus a real break. I'd also like contractual arrival periods over calendar cutoffs alone, with timezone and rollover rules handled per integration.
+>
+> On break reasons I would utilize a common core taxonomy of timing, amount/fee discrepancy, duplication and missing leg, with partner-specific details placed on top. This maintains consistent reporting without forcing every integration to fit into an unduly strict standard. The key difference is an exception that has to be monitored vs one that needs action"
+
+**What this refines for the build:**
+
+* **G1 (IN_TRANSIT):** The 4-hour window is a demo artefact. Production must use **partner-specific contractual arrival windows** with timezone/rollover rules per integration. The "contractual arrival period" becomes the primary filter; a generic timeout is only a fallback.
+* **G2 (cutoff calendars):** Reinforces the "contractual arrival window" framing — the partner config should carry `arrival_window_start`, `arrival_window_end`, `timezone`, and `rollover_rules`. The join uses the contract, not a calendar service.
+* **G5 (reason codes):** **Layered taxonomy**: core codes (`TIMING`, `FEE`, `DUPLICATE`, `MISSING_LEG`) are global and reportable; partner-specific detail lives in a separate `detail_code` / `detail_text` column. The exception queue splits on `action_required: boolean` (needs human) vs `monitor_only: boolean` (ageing bucket). This "monitor vs act" distinction is the operational one that matters.
+
+Logged in MARKET_RESEARCH.md as G1-FEEDBACK-2, G2-FEEDBACK-2, G5-FEEDBACK-2.

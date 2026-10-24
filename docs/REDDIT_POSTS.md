@@ -9,6 +9,7 @@
 | r/fintech (thread 2026-09-28) | reply: "How do you actually reconcile PSP settlement CSVs against orders and bank deposits" | **staged** — the text is in the *Join the conversation* box, one click to send |
 | r/fintech (thread 2026-09-22) | reply: "What payment-provider incident forced you to redesign reconciliation?" | **staged** — the text is in the *Join the conversation* box, one click to send |
 | r/Accounting | a pure-help reply on daily reconciliation | **staged** — the text is in the *Join the conversation* box, one click to send. **No link and no mention of our project** — r/Accounting's rule 2 bans posting your own project, so this one is help only |
+| r/fintech (own post) | reply from a practitioner on the three open questions (G1/G2/G5) | **received** — logged below and in MARKET_RESEARCH.md; no further action needed |
 
 **One thing worth knowing:** from this machine, Reddit's *write* endpoints are
 blocked. `POST /api/submit` and `POST /api/comment` both return 403 — with a
@@ -345,3 +346,21 @@ from an account that "doesn't meet our karma and account age requirements", so
 comments from young/low-karma accounts are filtered there too. Our replies may
 be removed on the same basis. Nothing in the two replies depends on the
 post existing, so that risk is acceptable.
+
+---
+
+## 7. Practitioner reply on our r/fintech post (2026-10-24)
+
+Received on the live thread: "the two bounded windows thing is clever but that in-transit problem is exactly where these systems get painful. i'd lean toward keeping it as MISSING_SETTLEMENT and just aging the break, adding an explicit IN_TRANSIT state sounds nice until every partner has a different SLA and you're maintaining 15 configs that drift out of sync within a month
+
+for the cutoff calendars, i'd reconcile against the contractual arrival window every time. had a similar headache with a partner that batched at 11pm local thursday but their UTC conversion was offset by 30 min, chasing the clock just meant chasing phantom breaks
+
+the reason-code taxonomy is worth it if you can keep it small, like 5-6 codes max. once it hits double digits everyone starts misclassifying and it's worse than nothing"
+
+**What this means for the build:**
+
+* **G1 (IN_TRANSIT):** The commenter validates that the false-positive problem is real, but argues the fix (per-partner SLA configs) becomes its own maintenance nightmare. Decision: if we build IN_TRANSIT, make it a *generic ageing bucket* with optional per-partner override, not 15 hard configs.
+* **G2 (cutoff calendars):** They confirm the phantom-break class and endorse the "contractual arrival window" framing over a calendar service. Decision: encode the window in the partner contract config, not as a separate calendar microservice.
+* **G5 (reason codes):** They endorse the taxonomy but insist on a hard cap (5-6 codes max) or it becomes worse than nothing. Decision: hard-cap at 6 codes + "other" bucket, add a CI guard that requires a reviewer to approve any new code.
+
+Logged in MARKET_RESEARCH.md as G1-FEEDBACK, G2-FEEDBACK, G5-FEEDBACK.

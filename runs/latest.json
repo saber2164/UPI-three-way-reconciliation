@@ -1,69 +1,69 @@
 {
-  "generated_at": "2026-10-29T17:29:20.707753+00:00",
+  "generated_at": "2026-10-29T22:22:08.651945+00:00",
   "age_minutes": 25,
   "cohort": "samples older than 25 minutes",
-  "decisions": 184096,
+  "decisions": 183685,
   "by_status": {
-    "AMOUNT_MISMATCH": 3037,
-    "MATCHED": 174756,
-    "MISSING_CALLBACK": 2879,
-    "MISSING_SETTLEMENT": 3424
+    "AMOUNT_MISMATCH": 2924,
+    "MATCHED": 174381,
+    "MISSING_CALLBACK": 3003,
+    "MISSING_SETTLEMENT": 3377
   },
   "match_rate_pct": 94.93,
-  "audit_rows": 185917,
-  "audit_rrns": 184114,
-  "late_corrections": 1803,
+  "audit_rows": 185477,
+  "audit_rrns": 183686,
+  "late_corrections": 1791,
   "regressions": 0,
   "false_positives": 0,
   "control_total": {
-    "gross_inr": 401461299.96,
-    "reconciled_inr": 381072977.48,
-    "mismatch_inr": 6687397.76,
-    "outstanding_inr": 7517160.41,
-    "missing_callback_inr": 6183764.31,
-    "difference_inr": -0.0
+    "gross_inr": 399462252.77,
+    "reconciled_inr": 378641963.15,
+    "mismatch_inr": 6399363.23,
+    "outstanding_inr": 7691772.02,
+    "missing_callback_inr": 6729154.37,
+    "difference_inr": 0.0
   },
   "recall": [
     {
       "fault": "AMOUNT_DRIFT",
-      "samples": 637,
-      "final_ok": 637,
-      "initial_ok": 637,
+      "samples": 638,
+      "final_ok": 638,
+      "initial_ok": 638,
       "final_recall_pct": 100.0
     },
     {
       "fault": "DUP_SWITCH",
-      "samples": 620,
-      "final_ok": 620,
-      "initial_ok": 620,
+      "samples": 632,
+      "final_ok": 632,
+      "initial_ok": 632,
       "final_recall_pct": 100.0
     },
     {
       "fault": "LATE_SETTLE",
-      "samples": 634,
-      "final_ok": 634,
+      "samples": 610,
+      "final_ok": 610,
       "initial_ok": 0,
       "final_recall_pct": 100.0
     },
     {
       "fault": "MISSING_CALLBACK",
-      "samples": 623,
-      "final_ok": 623,
-      "initial_ok": 623,
+      "samples": 668,
+      "final_ok": 668,
+      "initial_ok": 668,
       "final_recall_pct": 100.0
     },
     {
       "fault": "MISSING_SETTLE",
-      "samples": 676,
-      "final_ok": 676,
-      "initial_ok": 676,
+      "samples": 598,
+      "final_ok": 598,
+      "initial_ok": 598,
       "final_recall_pct": 100.0
     },
     {
       "fault": "OUT_OF_ORDER",
-      "samples": 604,
-      "final_ok": 604,
-      "initial_ok": 604,
+      "samples": 660,
+      "final_ok": 660,
+      "initial_ok": 660,
       "final_recall_pct": 100.0
     }
   ],
@@ -71,121 +71,121 @@
   "latency": {
     "avg_s": "36",
     "p50_s": 26.0,
-    "p95_s": 45.0,
-    "n": 177563
+    "p95_s": 46.0,
+    "n": 176729
   },
   "alerts": [
     {
       "merchant_id": "M0001",
-      "window_start": "2026-10-29 17:26:00+00:00",
-      "unmatched_rate": "0.2249",
-      "message": "merchant M0001 unmatched rate breached in window starting 2026-10-29 17:26:00.000"
-    },
-    {
-      "merchant_id": "M0001",
-      "window_start": "2026-10-29 17:24:00+00:00",
-      "unmatched_rate": "0.2239",
-      "message": "merchant M0001 unmatched rate breached in window starting 2026-10-29 17:24:00.000"
-    },
-    {
-      "merchant_id": "M0001",
-      "window_start": "2026-10-29 17:22:00+00:00",
-      "unmatched_rate": "0.2196",
-      "message": "merchant M0001 unmatched rate breached in window starting 2026-10-29 17:22:00.000"
-    },
-    {
-      "merchant_id": "M0116",
-      "window_start": "2026-10-29 17:22:00+00:00",
-      "unmatched_rate": "0.1563",
-      "message": "merchant M0116 unmatched rate breached in window starting 2026-10-29 17:22:00.000"
-    },
-    {
-      "merchant_id": "M0001",
-      "window_start": "2026-10-29 17:20:00+00:00",
-      "unmatched_rate": "0.2410",
-      "message": "merchant M0001 unmatched rate breached in window starting 2026-10-29 17:20:00.000"
-    },
-    {
-      "merchant_id": "M0001",
-      "window_start": "2026-10-29 17:18:00+00:00",
+      "window_start": "2026-10-29 22:20:00+00:00",
       "unmatched_rate": "0.2218",
-      "message": "merchant M0001 unmatched rate breached in window starting 2026-10-29 17:18:00.000"
+      "message": "merchant M0001 unmatched rate breached in window starting 2026-10-29 22:20:00.000"
     },
     {
       "merchant_id": "M0001",
-      "window_start": "2026-10-29 17:16:00+00:00",
-      "unmatched_rate": "0.2263",
-      "message": "merchant M0001 unmatched rate breached in window starting 2026-10-29 17:16:00.000"
-    },
-    {
-      "merchant_id": "M0188",
-      "window_start": "2026-10-29 17:14:00+00:00",
-      "unmatched_rate": "0.1087",
-      "message": "merchant M0188 unmatched rate breached in window starting 2026-10-29 17:14:00.000"
+      "window_start": "2026-10-29 22:18:00+00:00",
+      "unmatched_rate": "0.2403",
+      "message": "merchant M0001 unmatched rate breached in window starting 2026-10-29 22:18:00.000"
     },
     {
       "merchant_id": "M0001",
-      "window_start": "2026-10-29 17:14:00+00:00",
-      "unmatched_rate": "0.2464",
-      "message": "merchant M0001 unmatched rate breached in window starting 2026-10-29 17:14:00.000"
+      "window_start": "2026-10-29 22:16:00+00:00",
+      "unmatched_rate": "0.2378",
+      "message": "merchant M0001 unmatched rate breached in window starting 2026-10-29 22:16:00.000"
     },
     {
       "merchant_id": "M0001",
-      "window_start": "2026-10-29 17:12:00+00:00",
-      "unmatched_rate": "0.2386",
-      "message": "merchant M0001 unmatched rate breached in window starting 2026-10-29 17:12:00.000"
+      "window_start": "2026-10-29 22:14:00+00:00",
+      "unmatched_rate": "0.2314",
+      "message": "merchant M0001 unmatched rate breached in window starting 2026-10-29 22:14:00.000"
+    },
+    {
+      "merchant_id": "M0124",
+      "window_start": "2026-10-29 22:14:00+00:00",
+      "unmatched_rate": "0.1351",
+      "message": "merchant M0124 unmatched rate breached in window starting 2026-10-29 22:14:00.000"
+    },
+    {
+      "merchant_id": "M0001",
+      "window_start": "2026-10-29 22:12:00+00:00",
+      "unmatched_rate": "0.2375",
+      "message": "merchant M0001 unmatched rate breached in window starting 2026-10-29 22:12:00.000"
+    },
+    {
+      "merchant_id": "M0001",
+      "window_start": "2026-10-29 22:10:00+00:00",
+      "unmatched_rate": "0.2385",
+      "message": "merchant M0001 unmatched rate breached in window starting 2026-10-29 22:10:00.000"
+    },
+    {
+      "merchant_id": "M0001",
+      "window_start": "2026-10-29 22:08:00+00:00",
+      "unmatched_rate": "0.2302",
+      "message": "merchant M0001 unmatched rate breached in window starting 2026-10-29 22:08:00.000"
+    },
+    {
+      "merchant_id": "M0001",
+      "window_start": "2026-10-29 22:06:00+00:00",
+      "unmatched_rate": "0.2373",
+      "message": "merchant M0001 unmatched rate breached in window starting 2026-10-29 22:06:00.000"
+    },
+    {
+      "merchant_id": "M0001",
+      "window_start": "2026-10-29 22:04:00+00:00",
+      "unmatched_rate": "0.2532",
+      "message": "merchant M0001 unmatched rate breached in window starting 2026-10-29 22:04:00.000"
     }
   ],
   "merchants": [
     {
       "merchant_id": "M0001",
-      "txns": 18044,
-      "unmatched_pct": "19.82"
+      "txns": 18088,
+      "unmatched_pct": "20.17"
     },
     {
-      "merchant_id": "M0116",
-      "txns": 322,
-      "unmatched_pct": "4.04"
+      "merchant_id": "M0111",
+      "txns": 387,
+      "unmatched_pct": "4.65"
     },
     {
-      "merchant_id": "M0169",
-      "txns": 344,
-      "unmatched_pct": "3.78"
+      "merchant_id": "M0187",
+      "txns": 341,
+      "unmatched_pct": "3.52"
     },
     {
-      "merchant_id": "M0022",
-      "txns": 376,
-      "unmatched_pct": "3.72"
+      "merchant_id": "M0196",
+      "txns": 345,
+      "unmatched_pct": "3.48"
     },
     {
-      "merchant_id": "M0192",
-      "txns": 363,
-      "unmatched_pct": "3.58"
+      "merchant_id": "M0046",
+      "txns": 368,
+      "unmatched_pct": "3.26"
     },
     {
-      "merchant_id": "M0055",
-      "txns": 339,
-      "unmatched_pct": "3.54"
+      "merchant_id": "M0037",
+      "txns": 368,
+      "unmatched_pct": "3.26"
     },
     {
-      "merchant_id": "M0072",
-      "txns": 408,
-      "unmatched_pct": "3.43"
+      "merchant_id": "M0039",
+      "txns": 373,
+      "unmatched_pct": "3.22"
     },
     {
-      "merchant_id": "M0051",
-      "txns": 386,
-      "unmatched_pct": "3.37"
+      "merchant_id": "M0098",
+      "txns": 345,
+      "unmatched_pct": "3.19"
     },
     {
-      "merchant_id": "M0167",
-      "txns": 328,
-      "unmatched_pct": "3.35"
+      "merchant_id": "M0198",
+      "txns": 349,
+      "unmatched_pct": "3.15"
     },
     {
-      "merchant_id": "M0064",
-      "txns": 331,
-      "unmatched_pct": "3.32"
+      "merchant_id": "M0057",
+      "txns": 384,
+      "unmatched_pct": "3.13"
     }
   ],
   "statuses": [

@@ -1,14 +1,5 @@
 [
   {
-    "generated_at": "2026-11-07T02:56:50.075578+00:00",
-    "decisions": 185301,
-    "match_rate_pct": 94.97,
-    "recall_overall_pct": 100.0,
-    "late_corrections": 1883,
-    "false_positives": 0,
-    "regressions": 0
-  },
-  {
     "generated_at": "2026-11-07T09:49:06.999170+00:00",
     "decisions": 184255,
     "match_rate_pct": 94.97,
@@ -447,6 +438,15 @@
     "recall_overall_pct": 100.0,
     "late_corrections": 1849,
     "false_positives": 1,
+    "regressions": 0
+  },
+  {
+    "generated_at": "2026-11-21T20:22:01.962349+00:00",
+    "decisions": 185091,
+    "match_rate_pct": 94.87,
+    "recall_overall_pct": 100.0,
+    "late_corrections": 1835,
+    "false_positives": 0,
     "regressions": 0
   }
 ]
